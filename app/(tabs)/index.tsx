@@ -17,6 +17,8 @@ import { CityAutocomplete } from '@/components/CityAutocomplete';
 import { DateRangeCalendar } from '@/components/DateRangeCalendar';
 import type { City } from '@/lib/cities';
 import {
+  cityDateRanges,
+  formatCityDateRange,
   getTripEstimate,
   suggestCityDurations,
   totalTripDays,
@@ -85,6 +87,12 @@ export default function TripInputScreen() {
 
   const daysAllocated = cityDurations.reduce((a, b) => a + b, 0);
   const daysMatch = tripDays > 0 && daysAllocated === tripDays;
+
+  // Live per-city date windows derived from the start date + current day split.
+  const dateRanges = useMemo(
+    () => cityDateRanges(startDate, cityDurations, cities.length),
+    [startDate, cityDurations, cities.length],
+  );
 
   const addCityByName = (name: string) => {
     const trimmed = name.trim();
@@ -395,8 +403,14 @@ export default function TripInputScreen() {
                             {city}
                           </Text>
                           <Text className="text-xs" color="muted">
-                            {cityDurations[index] ?? 0}{' '}
-                            {(cityDurations[index] ?? 0) === 1 ? 'day' : 'days'}
+                            {startDate
+                              ? formatCityDateRange(
+                                  dateRanges[index] ?? { startISO: null, endISO: null, days: [] },
+                                  cityDurations[index] ?? 0,
+                                )
+                              : `${cityDurations[index] ?? 0} ${
+                                  (cityDurations[index] ?? 0) === 1 ? 'day' : 'days'
+                                }`}
                           </Text>
                         </View>
                       </View>

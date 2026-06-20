@@ -5,21 +5,24 @@ import {
   ArrowLeft,
   ArrowRight,
   AlertTriangle,
+  Calendar,
   Check,
   Plane,
   Plus,
   Train,
+  X,
 } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
 
-import type {
-  BookedItem,
-  CityEstimate,
-  CostRange,
-  TravelLeg,
-  TravelOption,
-  TripEstimate,
+import {
+  cityDateRanges,
+  type BookedItem,
+  type CityEstimate,
+  type CostRange,
+  type TravelLeg,
+  type TravelOption,
+  type TripEstimate,
 } from '@/lib/tripEstimate';
 
 // bilt.me brand palette
@@ -53,6 +56,24 @@ function formatDates(start: string, end: string): string | null {
     return `${startLabel} – ${endLabel}`;
   } catch {
     return null;
+  }
+}
+
+/** Short label for a day chip, e.g. "Mon 14 Sept". */
+function formatDayChip(iso: string): string {
+  try {
+    return format(new Date(`${iso}T00:00:00`), 'EEE d MMM');
+  } catch {
+    return iso;
+  }
+}
+
+/** Compact selected-date label, e.g. "14 Sept". */
+function formatSelectedDate(iso: string): string {
+  try {
+    return format(new Date(`${iso}T00:00:00`), 'd MMM');
+  } catch {
+    return iso;
   }
 }
 
@@ -440,56 +461,144 @@ function LegOptionRow({
 function OptionRow({
   option,
   added,
-  onToggle,
+  selectedDate,
+  requiresDate,
+  availableDays,
+  onAdd,
+  onRemove,
 }: {
   option: BookableOption;
   added: boolean;
-  onToggle: () => void;
+  selectedDate?: string;
+  /** When true (food/activities), require picking a day before confirming. */
+  requiresDate: boolean;
+  /** ISO days the traveller is in this city (for the date picker). */
+  availableDays: string[];
+  onAdd: (date?: string) => void;
+  onRemove: () => void;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const handlePress = () => {
+    if (added) {
+      onRemove();
+      setPickerOpen(false);
+      return;
+    }
+    if (requiresDate) {
+      // No usable days (dates unknown) — confirm without a date as a fallback.
+      if (availableDays.length === 0) {
+        onAdd(undefined);
+        return;
+      }
+      setPickerOpen((o) => !o);
+      return;
+    }
+    onAdd(undefined);
+  };
+
+  const pickDate = (iso: string) => {
+    onAdd(iso);
+    setPickerOpen(false);
+  };
+
   return (
-    <View className="flex-row items-center justify-between py-3">
-      <View className="flex-1 pr-3">
-        <Text
-          className="text-base"
-          style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#1a1a1a' }}
+    <View className="py-3">
+      <View className="flex-row items-center justify-between">
+        <View className="flex-1 pr-3">
+          <Text
+            className="text-base"
+            style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#1a1a1a' }}
+          >
+            {option.title}
+          </Text>
+          <Text className="mt-0.5 text-sm" style={{ fontFamily: BODY_FONT, color: '#6b6b6b' }}>
+            {option.detail} · {formatMoney(option.price)}
+          </Text>
+          {added && selectedDate ? (
+            <View className="mt-1 flex-row items-center gap-1.5">
+              <Calendar size={13} color={BRAND.purple} strokeWidth={2.2} />
+              <Text
+                className="text-sm"
+                style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.purple }}
+              >
+                {formatSelectedDate(selectedDate)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        <Pressable
+          onPress={handlePress}
+          hitSlop={6}
+          className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2"
+          style={{
+            backgroundColor: added ? BRAND.purpleSoft : pickerOpen ? BRAND.purpleSoft : BRAND.pink,
+          }}
         >
-          {option.title}
-        </Text>
-        <Text className="mt-0.5 text-sm" style={{ fontFamily: BODY_FONT, color: '#6b6b6b' }}>
-          {option.detail} · {formatMoney(option.price)}
-        </Text>
+          {added ? (
+            <>
+              <Check size={15} color={BRAND.purple} strokeWidth={2.5} />
+              <Text
+                className="text-sm"
+                style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.purple }}
+              >
+                added
+              </Text>
+            </>
+          ) : pickerOpen ? (
+            <>
+              <X size={15} color={BRAND.purple} strokeWidth={2.5} />
+              <Text
+                className="text-sm"
+                style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.purple }}
+              >
+                cancel
+              </Text>
+            </>
+          ) : (
+            <>
+              <Plus size={15} color="#fff" strokeWidth={2.5} />
+              <Text
+                className="text-sm"
+                style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#fff' }}
+              >
+                book this
+              </Text>
+            </>
+          )}
+        </Pressable>
       </View>
 
-      <Pressable
-        onPress={onToggle}
-        hitSlop={6}
-        className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2"
-        style={{
-          backgroundColor: added ? BRAND.purpleSoft : BRAND.pink,
-        }}
-      >
-        {added ? (
-          <>
-            <Check size={15} color={BRAND.purple} strokeWidth={2.5} />
-            <Text
-              className="text-sm"
-              style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.purple }}
-            >
-              added
-            </Text>
-          </>
-        ) : (
-          <>
-            <Plus size={15} color="#fff" strokeWidth={2.5} />
-            <Text
-              className="text-sm"
-              style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#fff' }}
-            >
-              book this
-            </Text>
-          </>
-        )}
-      </Pressable>
+      {/* Inline day picker — only the days you're actually in this city. */}
+      {pickerOpen && !added ? (
+        <View className="mt-3 rounded-2xl p-3" style={{ backgroundColor: BRAND.pinkSoft }}>
+          <Text
+            className="mb-2 text-xs"
+            style={{ fontFamily: BODY_FONT, fontWeight: '700', color: BRAND.pink }}
+          >
+            which day?
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {availableDays.map((iso) => (
+              <Pressable
+                key={iso}
+                onPress={() => pickDate(iso)}
+                hitSlop={4}
+                className="rounded-full px-3 py-2"
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: BRAND.purpleSoft }}
+              >
+                <Text
+                  className="text-sm"
+                  style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.purple }}
+                >
+                  {formatDayChip(iso)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -600,19 +709,52 @@ export default function BookScreen() {
   }, [cityNames, activeCity]);
 
   const [added, setAdded] = useState<Record<string, boolean>>({});
+  // Selected date per food/activity option (legId/optionId -> ISO yyyy-MM-dd).
+  const [optionDates, setOptionDates] = useState<Record<string, string>>({});
   // One selected travel option per leg (single-select). Maps legId -> optionId.
   const [legChoice, setLegChoice] = useState<Record<string, string>>({});
   // Which sections have "show more" expanded. Keyed by a stable section id.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  // Per-city date windows (ISO days) from the trip start date + day split.
+  const cityDays = useMemo<Record<string, string[]>>(() => {
+    const durations = (() => {
+      try {
+        const parsed: unknown = JSON.parse(cityDurationsStr || '[]');
+        return Array.isArray(parsed) ? parsed.map((n) => Number(n) || 1) : [];
+      } catch {
+        return [];
+      }
+    })();
+    const ranges = cityDateRanges(start, durations, cityNames.length);
+    const map: Record<string, string[]> = {};
+    cityNames.forEach((name, i) => {
+      map[name] = ranges[i]?.days ?? [];
+    });
+    return map;
+  }, [cityDurationsStr, start, cityNames]);
+
   const toggleExpanded = (sectionId: string) => {
     setExpanded((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
 
-  const toggle = (option: BookableOption) => {
-    setAdded((prev) => {
-      const next = !prev[option.id];
-      return { ...prev, [option.id]: next };
+  const addOption = (option: BookableOption, date?: string) => {
+    setAdded((prev) => ({ ...prev, [option.id]: true }));
+    setOptionDates((prev) => {
+      const next = { ...prev };
+      if (date) next[option.id] = date;
+      else delete next[option.id];
+      return next;
+    });
+  };
+
+  const removeOption = (option: BookableOption) => {
+    setAdded((prev) => ({ ...prev, [option.id]: false }));
+    setOptionDates((prev) => {
+      if (!(option.id in prev)) return prev;
+      const next = { ...prev };
+      delete next[option.id];
+      return next;
     });
   };
 
@@ -662,18 +804,25 @@ export default function BookScreen() {
       }
       for (const opt of options) {
         if (opt.city === city.name && added[opt.id]) {
-          out.push({
+          const category = catLabel[opt.category];
+          const item: BookedItem = {
             city: city.name,
-            category: catLabel[opt.category],
+            category,
             title: opt.title,
             detail: opt.detail,
             price: opt.price,
-          });
+          };
+          // Restaurants/activities carry the specific day the user picked.
+          if (category === 'restaurant' || category === 'activity') {
+            const date = optionDates[opt.id];
+            if (date) item.selectedDate = date;
+          }
+          out.push(item);
         }
       }
     }
     return out;
-  }, [estimate, options, added, legByCity, legChoice]);
+  }, [estimate, options, added, legByCity, legChoice, optionDates]);
 
   // Review unlocks once every city has at least one booked item (any category).
   const reviewReady = useMemo<boolean>(() => {
@@ -864,10 +1013,12 @@ export default function BookScreen() {
             opts: BookableOption[],
             sectionId: string,
             leadingDivider: boolean,
+            requiresDate: boolean,
           ) => {
             const isExpanded = expanded[sectionId];
             const visible = isExpanded ? opts : opts.slice(0, INITIAL_VISIBLE);
             const hiddenCount = opts.length - visible.length;
+            const days = cityDays[city.name] ?? [];
             return (
               <>
                 {visible.map((opt, idx) => (
@@ -875,7 +1026,15 @@ export default function BookScreen() {
                     {leadingDivider || idx > 0 ? (
                       <View className="h-px" style={{ backgroundColor: '#f0f0f0' }} />
                     ) : null}
-                    <OptionRow option={opt} added={added[opt.id]} onToggle={() => toggle(opt)} />
+                    <OptionRow
+                      option={opt}
+                      added={added[opt.id]}
+                      selectedDate={optionDates[opt.id]}
+                      requiresDate={requiresDate}
+                      availableDays={days}
+                      onAdd={(date) => addOption(opt, date)}
+                      onRemove={() => removeOption(opt)}
+                    />
                   </View>
                 ))}
                 <ShowMoreLink
@@ -940,15 +1099,15 @@ export default function BookScreen() {
               {/* Accommodation / food / activities for this city */}
               <Surface className="px-5 pb-3" style={{ backgroundColor: '#fff', borderRadius: 24 }}>
                 <SectionLabel>ACCOMMODATION</SectionLabel>
-                {renderOptionList(stayOpts, `${city.name}-accommodation`, false)}
+                {renderOptionList(stayOpts, `${city.name}-accommodation`, false, false)}
 
                 <SectionLabel>FOOD</SectionLabel>
                 <EstimateLine label="estimated spend" range={city.breakdown.food} />
-                {renderOptionList(foodOpts, `${city.name}-food`, true)}
+                {renderOptionList(foodOpts, `${city.name}-food`, true, true)}
 
                 <SectionLabel>ACTIVITIES</SectionLabel>
                 <EstimateLine label="estimated spend" range={city.breakdown.activities} />
-                {renderOptionList(actOpts, `${city.name}-activities`, true)}
+                {renderOptionList(actOpts, `${city.name}-activities`, true, true)}
               </Surface>
             </View>
           );

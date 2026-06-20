@@ -29,6 +29,14 @@ function formatDates(start: string, end: string): string | null {
   }
 }
 
+function formatSelectedDate(iso: string): string {
+  try {
+    return format(new Date(`${iso}T00:00:00`), 'd MMM');
+  } catch {
+    return iso;
+  }
+}
+
 function safeDate(iso: string): Date | null {
   if (!iso) return null;
   const d = new Date(`${iso}T00:00:00`);
@@ -56,6 +64,11 @@ function ItemRow({ item }: { item: BookedItem }) {
       <View className="flex-1 pr-3">
         <Text className="text-base font-semibold" numberOfLines={1}>
           {item.title}
+          {item.selectedDate ? (
+            <Text className="text-brand-purple font-semibold">
+              {`  ·  ${formatSelectedDate(item.selectedDate)}`}
+            </Text>
+          ) : null}
         </Text>
         <Text className="mt-0.5 text-sm" color="muted">
           {item.category} · {item.detail}

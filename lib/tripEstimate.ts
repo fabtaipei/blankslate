@@ -1,3 +1,5 @@
+import { addDays, format } from 'date-fns';
+
 export type TripStyle = 'budget' | 'mid-range' | 'luxury';
 
 export interface TripData {
@@ -66,6 +68,89 @@ export interface BookedItem {
   title: string;
   detail: string;
   price: number;
+  /**
+   * The specific day the booking is for, as an ISO date (yyyy-MM-dd). Only set
+   * for restaurant and activity bookings — flights/trains/hotels derive their
+   * dates from the trip legs and per-city stay windows instead.
+   */
+  selectedDate?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Per-city date windows
+// ---------------------------------------------------------------------------
+
+export interface CityDateRange {
+  /** Inclusive first day in the city (ISO yyyy-MM-dd), or null if unknown. */
+  startISO: string | null;
+  /** First day after leaving the city (ISO yyyy-MM-dd), or null if unknown. */
+  endISO: string | null;
+  /** All days the traveller is physically in the city (ISO yyyy-MM-dd). */
+  days: string[];
+}
+
+function safeDate(iso: string | null | undefined): Date | null {
+  if (!iso) return null;
+  const d = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Compute each city's date window from the trip start date and the ordered
+ * per-city day split. The departure city is day 0 and is not included here —
+ * city 1 begins on the trip start date. Returns one entry per destination city.
+ *
+ * Example: start = 1 Sept, durations = [5, 3] →
+ *   city 0: 1 Sept .. 6 Sept (5 days), city 1: 6 Sept .. 9 Sept (3 days).
+ */
+export function cityDateRanges(
+  startISO: string | null,
+  durations: number[],
+  count: number,
+): CityDateRange[] {
+  const start = safeDate(startISO);
+  const out: CityDateRange[] = [];
+  let cursor = 0;
+
+  for (let i = 0; i < count; i++) {
+    const span = Math.max(1, Math.round(durations[i] ?? 1));
+    if (!start) {
+      out.push({ startISO: null, endISO: null, days: [] });
+      continue;
+    }
+    const cityStart = addDays(start, cursor);
+    const cityEnd = addDays(start, cursor + span);
+    const days: string[] = [];
+    for (let d = 0; d < span; d++) {
+      days.push(format(addDays(cityStart, d), 'yyyy-MM-dd'));
+    }
+    out.push({
+      startISO: format(cityStart, 'yyyy-MM-dd'),
+      endISO: format(cityEnd, 'yyyy-MM-dd'),
+      days,
+    });
+    cursor += span;
+  }
+
+  return out;
+}
+
+/** Format an ISO date as a short day label, e.g. "1 Sept". Returns '' on bad input. */
+export function formatDayShort(iso: string | null | undefined): string {
+  const d = safeDate(iso);
+  return d ? format(d, 'd MMM') : '';
+}
+
+/**
+ * Friendly "1 Sept to 6 Sept" label for a city's stay window. Falls back to a
+ * day count when dates aren't known yet.
+ */
+export function formatCityDateRange(cityDateRange: CityDateRange, days: number): string {
+  const startLabel = formatDayShort(cityDateRange.startISO);
+  const endLabel = formatDayShort(cityDateRange.endISO);
+  if (startLabel && endLabel) return `${startLabel} to ${endLabel}`;
+  const n = Math.max(1, Math.round(days));
+  return `${n} ${n === 1 ? 'day' : 'days'}`;
 }
 
 const STYLE_MULTIPLIER: Record<TripStyle, number> = {
@@ -359,6 +444,7 @@ export async function getTripEstimate(tripData: TripData): Promise<TripEstimate>
     if (!response.ok) {
       return localTripEstimate(tripData);
     }
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion -- response.json() is `any`; we trust the API shape and fall back on error
     return (await response.json()) as TripEstimate;
   } catch {
     return localTripEstimate(tripData);

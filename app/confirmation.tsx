@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Platform, Pressable, ScrollView, Share, View } from 'react-native';
 
 import { useSavedTripStore } from '@/lib/savedTrip';
-import type { BookedItem } from '@/lib/tripEstimate';
+import { cityDateRanges, formatCityDateRange, type BookedItem } from '@/lib/tripEstimate';
 
 const BRAND = {
   pink: '#CD1A6F',
@@ -96,6 +96,12 @@ export default function ConfirmationScreen() {
   const dateLabel = formatDates(start, end);
   const travellerLabel = `${travellers} ${travellers === 1 ? 'traveller' : 'travellers'}`;
 
+  // Per-city stay windows for the shareable itinerary card.
+  const ranges = useMemo(
+    () => cityDateRanges(start, cityDurations, cities.length),
+    [start, cityDurations, cities.length],
+  );
+
   // Persist the confirmed trip once so it stays accessible from the "my trip"
   // tab going forward — not just on this one-time confirmation screen.
   const savedRef = useRef(false);
@@ -117,12 +123,24 @@ export default function ConfirmationScreen() {
   }, [cities, items, cityDurations, departure, start, end, travellers, total, saveTrip]);
 
   const onShare = async () => {
+    // Restaurant/activity bookings the user pinned to a specific day.
+    const datedPlans = items
+      .filter((i) => i.selectedDate && (i.category === 'restaurant' || i.category === 'activity'))
+      .map((i) => {
+        try {
+          return `· ${i.title} — ${format(new Date(`${i.selectedDate}T00:00:00`), 'd MMM')}`;
+        } catch {
+          return `· ${i.title}`;
+        }
+      });
+
     const lines = [
       'my trip is booked with bilt-budget ✨',
       departure ? `from ${departure}` : '',
       cities.length > 0 ? `→ ${cities.join(' → ')}` : '',
       dateLabel ?? '',
       `${travellerLabel} · ${formatMoney(total)} total`,
+      ...(datedPlans.length > 0 ? ['', ...datedPlans] : []),
     ].filter(Boolean);
     const message = lines.join('\n');
     try {
@@ -243,21 +261,21 @@ export default function ConfirmationScreen() {
                   ITINERARY
                 </Text>
               </View>
-              <View className="flex-row flex-wrap items-center gap-x-1.5 gap-y-1">
+              <View className="gap-2">
                 {cities.map((city, idx) => (
-                  <View key={city} className="flex-row items-center gap-1.5">
+                  <View key={city} className="flex-row items-baseline gap-2">
                     <Text
                       className="text-lg"
                       style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#fff' }}
                     >
                       {city.toLowerCase()}
                     </Text>
-                    {idx < cities.length - 1 ? (
+                    {ranges[idx]?.startISO ? (
                       <Text
-                        className="text-lg"
-                        style={{ fontFamily: BODY_FONT, color: 'rgba(255,255,255,0.5)' }}
+                        className="text-sm"
+                        style={{ fontFamily: BODY_FONT, color: 'rgba(255,255,255,0.7)' }}
                       >
-                        →
+                        {formatCityDateRange(ranges[idx], cityDurations[idx] ?? 1)}
                       </Text>
                     ) : null}
                   </View>

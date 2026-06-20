@@ -35,6 +35,14 @@ function formatDates(start: string, end: string): string | null {
   }
 }
 
+function formatSelectedDate(iso: string): string {
+  try {
+    return format(new Date(`${iso}T00:00:00`), 'd MMM');
+  } catch {
+    return iso;
+  }
+}
+
 const CATEGORY_ICON: Record<BookedItem['category'], typeof Plane> = {
   flight: Plane,
   train: Train,
@@ -91,6 +99,11 @@ function ItemRow({ item }: { item: BookedItem }) {
           style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#1a1a1a' }}
         >
           {item.title}
+          {item.selectedDate ? (
+            <Text style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.purple }}>
+              {`  ·  ${formatSelectedDate(item.selectedDate)}`}
+            </Text>
+          ) : null}
         </Text>
         <Text className="mt-0.5 text-sm" style={{ fontFamily: BODY_FONT, color: '#6b6b6b' }}>
           {item.category} · {item.detail}

@@ -6,7 +6,14 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { TripMap } from '@/components/TripMap';
-import type { CityEstimate, CostRange, TravelLeg, TripEstimate } from '@/lib/tripEstimate';
+import {
+  cityDateRanges,
+  formatCityDateRange,
+  type CityEstimate,
+  type CostRange,
+  type TravelLeg,
+  type TripEstimate,
+} from '@/lib/tripEstimate';
 
 function formatMoney(value: number): string {
   return `£${Math.round(value).toLocaleString('en-GB')}`;
@@ -33,13 +40,18 @@ function BreakdownRow({ label, range }: { label: string; range: CostRange }) {
   );
 }
 
-function CityCard({ city }: { city: CityEstimate }) {
+function CityCard({ city, dateLabel }: { city: CityEstimate; dateLabel?: string }) {
   return (
     <Surface variant="secondary" className="border-border/60 rounded-3xl border p-5">
       <View className="mb-3 flex-row items-end justify-between">
-        <Text className="flex-1 pr-3 text-2xl font-extrabold tracking-tight" numberOfLines={1}>
-          {city.name}
-        </Text>
+        <View className="flex-1 pr-3">
+          <Text className="text-2xl font-extrabold tracking-tight" numberOfLines={1}>
+            {city.name}
+          </Text>
+          {dateLabel ? (
+            <Text className="text-brand-pink mt-0.5 text-xs font-bold lowercase">{dateLabel}</Text>
+          ) : null}
+        </View>
         <Text className="text-brand-purple text-xl font-extrabold">
           {formatRange(city.costRange)}
         </Text>
@@ -143,6 +155,11 @@ export default function ResultsScreen() {
     ? (cityDurationsParam[0] ?? '')
     : (cityDurationsParam ?? '');
 
+  const dateRanges = useMemo(
+    () => cityDateRanges(startISO, durations, estimate?.cities.length ?? 0),
+    [startISO, durations, estimate],
+  );
+
   if (!estimate) {
     return (
       <View className="bg-background p-safe flex-1 items-center justify-center gap-4 px-6">
@@ -227,8 +244,15 @@ export default function ResultsScreen() {
         {view === 'breakdown' ? (
           <View className="gap-4">
             {estimate.legs.length > 0 ? <TravelCard legs={estimate.legs} /> : null}
-            {estimate.cities.map((city) => (
-              <CityCard key={city.name} city={city} />
+            {estimate.cities.map((city, index) => (
+              <CityCard
+                key={city.name}
+                city={city}
+                dateLabel={formatCityDateRange(
+                  dateRanges[index] ?? { startISO: null, endISO: null, days: [] },
+                  durations[index] ?? 1,
+                )}
+              />
             ))}
           </View>
         ) : (
