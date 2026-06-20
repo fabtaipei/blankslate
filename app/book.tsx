@@ -15,6 +15,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
 
+import { getHotels, type HotelSuggestion } from '@/lib/hotels';
+import { getRestaurants, type RestaurantSuggestion } from '@/lib/restaurants';
 import {
   cityDateRanges,
   type BookedItem,
@@ -22,6 +24,7 @@ import {
   type CostRange,
   type TravelLeg,
   type TravelOption,
+  type TripData,
   type TripEstimate,
 } from '@/lib/tripEstimate';
 
@@ -321,8 +324,14 @@ function perVisitRange(total: CostRange, days: number, occasionsPerDay: number):
 function buildOptions(
   cities: CityEstimate[],
   cityDayCount: Record<string, number>,
+  restaurants: RestaurantSuggestion[],
+  hotels: HotelSuggestion[],
 ): BookableOption[] {
   const out: BookableOption[] = [];
+
+  // Real backend picks, keyed by lowercased city name (one top result per city).
+  const realRestaurant = new Map(restaurants.map((r) => [r.city.trim().toLowerCase(), r]));
+  const realHotel = new Map(hotels.map((h) => [h.city.trim().toLowerCase(), h]));
 
   const HOTEL_NAMES = [
     'City Center Hostel',
@@ -343,30 +352,67 @@ function buildOptions(
     const key = city.name.trim().toLowerCase();
     const days = cityDayCount[city.name] ?? 1;
 
-    // Accommodation: a spread of stays from budget to upscale.
+    // Accommodation: a spread of stays from budget to upscale. Slot 0 is swapped
+    // for the real cheapest hotel (LiteAPI) when the backend returned one.
     const stayPrices = spreadPrices(city.breakdown.accommodation, HOTEL_NAMES.length);
+    const hotel = realHotel.get(key);
     HOTEL_NAMES.forEach((name, i) => {
-      out.push({
-        id: `${city.name}-accommodation-${i}`,
-        city: city.name,
-        category: 'accommodation',
-        title: name,
-        detail: `${city.name} · ${HOTEL_DETAILS[(index + i) % HOTEL_DETAILS.length]}`,
-        price: stayPrices[i],
-      });
+      const realThisSlot = i === 0 ? hotel : undefined;
+      if (realThisSlot) {
+        const detail =
+          [
+            realThisSlot.reviewScore != null ? `★ ${realThisSlot.reviewScore.toFixed(1)}` : null,
+            realThisSlot.rating != null ? `${realThisSlot.rating}-star` : null,
+            realThisSlot.address || null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || `${city.name} · best value`;
+        out.push({
+          id: `${city.name}-accommodation-${i}`,
+          city: city.name,
+          category: 'accommodation',
+          title: realThisSlot.name,
+          detail,
+          // Real hotels quote the whole stay in GBP — use it directly (£ app).
+          price:
+            realThisSlot.currency === 'GBP' ? Math.round(realThisSlot.totalAmount) : stayPrices[i],
+        });
+      } else {
+        out.push({
+          id: `${city.name}-accommodation-${i}`,
+          city: city.name,
+          category: 'accommodation',
+          title: name,
+          detail: `${city.name} · ${HOTEL_DETAILS[(index + i) % HOTEL_DETAILS.length]}`,
+          price: stayPrices[i],
+        });
+      }
     });
 
     // Food: suggested restaurants priced as a single meal (a fraction of the
     // multi-day food budget), cheaper ones first. ~2.5 meals out per day.
     const foodSugg = foodSuggestions(key, city.name);
     const foodPrices = spreadPrices(perVisitRange(city.breakdown.food, days, 2.5), foodSugg.length);
+    const restaurant = realRestaurant.get(key);
     foodSugg.forEach((s, i) => {
+      // Slot 0 swaps in the real top restaurant (Google) name + detail; the price
+      // keeps the per-visit budget figure (the backend's USD estimate isn't £).
+      const realThisSlot = i === 0 ? restaurant : undefined;
+      const detail = realThisSlot
+        ? [
+            realThisSlot.rating != null ? `${realThisSlot.rating}★` : null,
+            realThisSlot.priceSymbol,
+            realThisSlot.address || null,
+          ]
+            .filter(Boolean)
+            .join(' · ') || s.detail
+        : s.detail;
       out.push({
         id: `${city.name}-food-${i}`,
         city: city.name,
         category: 'food',
-        title: s.title,
-        detail: s.detail,
+        title: realThisSlot ? realThisSlot.name : s.title,
+        detail,
         price: foodPrices[i],
       });
     });
@@ -716,6 +762,51 @@ export default function BookScreen() {
     }
   }, [estimateParam]);
 
+  const [restaurants, setRestaurants] = useState<RestaurantSuggestion[]>([]);
+  const [hotels, setHotels] = useState<HotelSuggestion[]>([]);
+
+  // Fetch real restaurants + hotels from the backend once the trip is known.
+  // Both helpers fail soft (return []), so options keep their synthetic fallback.
+  useEffect(() => {
+    if (!estimate) return undefined;
+    const cityNamesForFetch = estimate.cities.map((c) => c.name);
+    if (cityNamesForFetch.length === 0) return undefined;
+    let cancelled = false;
+
+    void getRestaurants(cityNamesForFetch).then((list) => {
+      if (!cancelled) setRestaurants(list);
+    });
+
+    const durations = (() => {
+      try {
+        const parsed: unknown = JSON.parse(cityDurationsStr || '[]');
+        return Array.isArray(parsed)
+          ? parsed.map((n) => Math.max(1, Math.round(Number(n) || 1)))
+          : [];
+      } catch {
+        return [];
+      }
+    })();
+    const tripData: TripData = {
+      departureCity: departure,
+      cities: cityNamesForFetch,
+      cityDurations: durations,
+      // tripStyle isn't passed to this screen; the hotel search ignores it (it
+      // returns the cheapest stay), so a default satisfies the API contract.
+      tripStyle: 'mid-range',
+      startDate: start,
+      endDate: end,
+      travellers: Math.max(1, Number(travellerCount) || 1),
+    };
+    void getHotels(tripData).then((list) => {
+      if (!cancelled) setHotels(list);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [estimate, departure, start, end, travellerCount, cityDurationsStr]);
+
   const options = useMemo<BookableOption[]>(() => {
     if (!estimate) return [];
     // Days per city, parsed from the same source as cityDays below, so food and
@@ -734,8 +825,8 @@ export default function BookScreen() {
     estimate.cities.forEach((c, i) => {
       dayCount[c.name] = durations[i] ?? 1;
     });
-    return buildOptions(estimate.cities, dayCount);
-  }, [estimate, cityDurationsStr]);
+    return buildOptions(estimate.cities, dayCount, restaurants, hotels);
+  }, [estimate, cityDurationsStr, restaurants, hotels]);
 
   const legs = useMemo<TravelLeg[]>(() => estimate?.legs ?? [], [estimate]);
 

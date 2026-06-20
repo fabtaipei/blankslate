@@ -21,6 +21,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       policy: 'appVersion',
     },
     assetBundlePatterns: ['**/*'],
+    web: {
+      bundler: 'metro',
+      // Single-page web export: one index.html + client-side routing. Vercel
+      // rewrites all routes to index.html (see vercel.json) so deep links work.
+      output: 'single',
+    },
     ios: {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
