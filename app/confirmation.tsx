@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from 'heroui-native';
 import { ArrowRight, MapPin, PartyPopper, Share2, Users } from 'lucide-react-native';
@@ -159,7 +160,7 @@ export default function ConfirmationScreen() {
           </View>
           <Text
             className="text-center text-3xl"
-            style={{ fontFamily: BODY_FONT, fontWeight: '700', color: '#1a1a1a' }}
+            style={{ fontFamily: BODY_FONT, fontWeight: '800', color: '#1a1a1a' }}
           >
             you&apos;re all set!
           </Text>
@@ -167,15 +168,18 @@ export default function ConfirmationScreen() {
             className="text-center text-base"
             style={{ fontFamily: BODY_FONT, color: '#6b6b6b', maxWidth: 300 }}
           >
-            your trip is locked in. here&apos;s the summary worth screenshotting.
+            your trip is locked in. here&apos;s the one worth screenshotting. ✨
           </Text>
         </View>
 
         {/* Trip summary card — the screenshottable artifact */}
-        <View
-          className="overflow-hidden rounded-3xl"
+        <LinearGradient
+          colors={['#6320EE', '#CD1A6F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            backgroundColor: BRAND.purple,
+            overflow: 'hidden',
+            borderRadius: 28,
             shadowColor: BRAND.purple,
             shadowOpacity: 0.25,
             shadowRadius: 18,
@@ -298,7 +302,7 @@ export default function ConfirmationScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* View my trip — ongoing access to itinerary, map & calendar */}
         <Pressable

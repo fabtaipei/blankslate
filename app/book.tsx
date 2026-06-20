@@ -514,7 +514,7 @@ function SectionLabel({ children }: { children: string }) {
   return (
     <Text
       className="pt-3 text-xs"
-      style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.pink, letterSpacing: 0.5 }}
+      style={{ fontFamily: BODY_FONT, fontWeight: '800', color: BRAND.pink, letterSpacing: 0.5 }}
     >
       {children}
     </Text>
@@ -703,7 +703,7 @@ export default function BookScreen() {
         className="pt-safe-offset-2 flex-1 items-center justify-center gap-4 px-6"
         style={{ backgroundColor: '#fafafa' }}
       >
-        <Text className="text-xl" style={{ fontFamily: BODY_FONT, fontWeight: '700' }}>
+        <Text className="text-xl" style={{ fontFamily: BODY_FONT, fontWeight: '800' }}>
           nothing to book yet
         </Text>
         <Text style={{ fontFamily: BODY_FONT, color: '#6b6b6b', textAlign: 'center' }}>
@@ -745,19 +745,19 @@ export default function BookScreen() {
       >
         <Text
           className="text-3xl"
-          style={{ fontFamily: BODY_FONT, fontWeight: '700', color: '#1a1a1a' }}
+          style={{ fontFamily: BODY_FONT, fontWeight: '800', color: '#1a1a1a' }}
         >
-          book your trip
+          build your trip
         </Text>
 
         {/* Trip summary */}
-        <Surface className="gap-3 p-5" style={{ backgroundColor: '#fff', borderRadius: 18 }}>
+        <Surface className="gap-3 p-5" style={{ backgroundColor: '#fff', borderRadius: 24 }}>
           <View>
             <Text
               className="text-xs"
               style={{
                 fontFamily: BODY_FONT,
-                fontWeight: '600',
+                fontWeight: '800',
                 color: BRAND.pink,
                 letterSpacing: 0.6,
               }}
@@ -794,7 +794,7 @@ export default function BookScreen() {
         {estimate.routeWarning ? (
           <Surface
             className="flex-row items-start gap-3 p-4"
-            style={{ backgroundColor: BRAND.pinkSoft, borderRadius: 16 }}
+            style={{ backgroundColor: BRAND.pinkSoft, borderRadius: 20 }}
           >
             <AlertTriangle
               size={18}
@@ -835,7 +835,7 @@ export default function BookScreen() {
                   className="text-sm"
                   style={{
                     fontFamily: BODY_FONT,
-                    fontWeight: '600',
+                    fontWeight: '700',
                     color: isActive ? '#fff' : '#6b6b6b',
                   }}
                 >
@@ -901,7 +901,7 @@ export default function BookScreen() {
                     return (
                       <Surface
                         className="px-5 pb-3"
-                        style={{ backgroundColor: '#fff', borderRadius: 18 }}
+                        style={{ backgroundColor: '#fff', borderRadius: 24 }}
                       >
                         <Text
                           className="pt-4 text-lg"
@@ -938,7 +938,7 @@ export default function BookScreen() {
                 : null}
 
               {/* Accommodation / food / activities for this city */}
-              <Surface className="px-5 pb-3" style={{ backgroundColor: '#fff', borderRadius: 18 }}>
+              <Surface className="px-5 pb-3" style={{ backgroundColor: '#fff', borderRadius: 24 }}>
                 <SectionLabel>ACCOMMODATION</SectionLabel>
                 {renderOptionList(stayOpts, `${city.name}-accommodation`, false)}
 

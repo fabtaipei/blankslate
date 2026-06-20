@@ -1,4 +1,5 @@
 import { addDays, format } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Button, Separator, Surface, Tabs, Text } from 'heroui-native';
 import { Bed, CalendarDays, MapPin, Plane, Ticket, Train, Utensils } from 'lucide-react-native';
@@ -135,10 +136,10 @@ function CalendarView({
     <Surface variant="secondary" className="border-border/60 rounded-3xl border p-5">
       <View className="mb-1 flex-row items-center gap-2">
         <CalendarDays size={18} color={BRAND_PURPLE} strokeWidth={2.2} />
-        <Text className="text-lg font-bold tracking-tight">Day by day</Text>
+        <Text className="text-lg font-extrabold tracking-tight">day by day</Text>
       </View>
       <Text className="mb-3 text-sm" color="muted">
-        Where you are each day of the trip.
+        where you are each day of the trip.
       </Text>
       <Separator />
       <View className="mt-2">
@@ -262,15 +263,15 @@ export default function MyTripScreen() {
         >
           <MapPin size={30} color={BRAND_PURPLE} strokeWidth={2.2} />
         </View>
-        <Text className="text-2xl font-bold" align="center">
-          No trip yet
+        <Text className="text-2xl font-extrabold" align="center">
+          no trip yet
         </Text>
         <Text color="muted" align="center">
-          Plan and book a trip and it&apos;ll live here — with your itinerary, map, and day-by-day
-          calendar.
+          plan and book a trip and it&apos;ll live here — itinerary, map, and day-by-day, all in one
+          spot.
         </Text>
         <Button variant="primary" onPress={() => router.replace('/(tabs)')}>
-          Plan a trip
+          plan a trip
         </Button>
       </View>
     );
@@ -286,41 +287,60 @@ export default function MyTripScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header card */}
-        <Surface className="gap-3 rounded-3xl p-6">
-          <Text className="text-brand-purple text-xs font-bold tracking-widest uppercase">
-            Your trip
+        <LinearGradient
+          colors={['#6320EE', '#CD1A6F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ gap: 12, borderRadius: 30, padding: 24 }}
+        >
+          <Text
+            className="text-xs font-extrabold lowercase"
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+          >
+            your trip, sorted
           </Text>
           <View className="flex-row flex-wrap items-center gap-x-1.5 gap-y-1">
             {trip.departureCity ? (
-              <Text className="text-2xl font-bold tracking-tight">{trip.departureCity}</Text>
+              <Text className="text-2xl font-extrabold tracking-tight" style={{ color: '#fff' }}>
+                {trip.departureCity}
+              </Text>
             ) : null}
             {trip.cities.map((city) => (
               <View key={city} className="flex-row items-center gap-1.5">
-                <Text className="text-2xl" color="muted">
+                <Text className="text-2xl" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   →
                 </Text>
-                <Text className="text-2xl font-bold tracking-tight">{city}</Text>
+                <Text className="text-2xl font-extrabold tracking-tight" style={{ color: '#fff' }}>
+                  {city}
+                </Text>
               </View>
             ))}
           </View>
-          <Separator />
+          <View className="h-px" style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
           <View className="flex-row items-end justify-between">
             <View>
-              {dateLabel ? <Text className="text-sm font-semibold">{dateLabel}</Text> : null}
-              <Text className="mt-0.5 text-sm" color="muted">
+              {dateLabel ? (
+                <Text className="text-sm font-bold" style={{ color: '#fff' }}>
+                  {dateLabel}
+                </Text>
+              ) : null}
+              <Text className="mt-0.5 text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
                 {trip.travellers} {trip.travellers === 1 ? 'traveller' : 'travellers'}
               </Text>
             </View>
             <View className="items-end">
-              <Text className="text-xs font-semibold uppercase" color="muted">
+              <Text
+                className="text-xs font-bold uppercase"
+                style={{ color: 'rgba(255,255,255,0.7)' }}
+              >
                 Total
               </Text>
-              <Text className="text-brand-purple text-3xl font-bold">
+              <Text className="text-3xl font-extrabold" style={{ color: '#fff' }}>
                 {formatMoney(trip.total)}
               </Text>
             </View>
           </View>
-        </Surface>
+        </LinearGradient>
 
         <Tabs
           value={view}
@@ -360,7 +380,7 @@ export default function MyTripScreen() {
         )}
 
         <Button variant="secondary" onPress={() => router.replace('/(tabs)')}>
-          Plan another trip
+          plan another trip
         </Button>
       </ScrollView>
     </View>

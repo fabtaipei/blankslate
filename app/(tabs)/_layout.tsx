@@ -31,8 +31,8 @@ export default function TabLayout() {
             paddingTop: 8,
           },
           tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '700',
+            fontSize: 12,
+            fontWeight: '800',
           },
           tabBarActiveTintColor: accent,
           tabBarInactiveTintColor: muted,

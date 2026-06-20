@@ -176,9 +176,9 @@ export default function ReviewScreen() {
         <View>
           <Text
             className="text-3xl"
-            style={{ fontFamily: BODY_FONT, fontWeight: '700', color: '#1a1a1a' }}
+            style={{ fontFamily: BODY_FONT, fontWeight: '800', color: '#1a1a1a' }}
           >
-            review your trip
+            looking good?
           </Text>
           {dateLabel ? (
             <Text className="mt-1 text-sm" style={{ fontFamily: BODY_FONT, color: '#6b6b6b' }}>
@@ -192,13 +192,13 @@ export default function ReviewScreen() {
           <Surface
             key={group.city}
             className="px-5 pb-3"
-            style={{ backgroundColor: '#fff', borderRadius: 18 }}
+            style={{ backgroundColor: '#fff', borderRadius: 24 }}
           >
             <Text
               className="pt-4 pb-1 text-xs"
               style={{
                 fontFamily: BODY_FONT,
-                fontWeight: '700',
+                fontWeight: '800',
                 color: BRAND.pink,
                 letterSpacing: 0.6,
               }}

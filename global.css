@@ -46,9 +46,9 @@
     --separator: oklch(0.94 0.004 320);
     --default: oklch(0.965 0.004 320);
 
-    /* Rounder corners across cards, buttons, tabs, fields. */
-    --radius: 0.875rem;
-    --field-radius: 0.875rem;
+    /* Big, playful rounded corners across cards, buttons, tabs, fields. */
+    --radius: 1.125rem;
+    --field-radius: 1.125rem;
   }
 }
 
@@ -56,9 +56,12 @@
 @theme {
   --color-brand-pink: oklch(0.557 0.224 0.5);
   --color-brand-purple: oklch(0.502 0.27 285.6);
-  --color-brand-pink-soft: oklch(0.557 0.224 0.5 / 0.1);
-  --color-brand-purple-soft: oklch(0.502 0.27 285.6 / 0.1);
+  --color-brand-pink-soft: oklch(0.557 0.224 0.5 / 0.12);
+  --color-brand-purple-soft: oklch(0.502 0.27 285.6 / 0.12);
+  /* Stronger tints for bolder colored card backgrounds. */
+  --color-brand-pink-tint: oklch(0.557 0.224 0.5 / 0.18);
+  --color-brand-purple-tint: oklch(0.502 0.27 285.6 / 0.18);
 
-  --radius-2xl: 1.125rem;
-  --radius-3xl: 1.5rem;
+  --radius-2xl: 1.375rem;
+  --radius-3xl: 1.875rem;
 }

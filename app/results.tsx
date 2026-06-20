@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Separator, Surface, Tabs, Text, useThemeColor } from 'heroui-native';
 import { ArrowLeft, Plane, Train } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
@@ -36,10 +37,12 @@ function CityCard({ city }: { city: CityEstimate }) {
   return (
     <Surface variant="secondary" className="border-border/60 rounded-3xl border p-5">
       <View className="mb-3 flex-row items-end justify-between">
-        <Text className="flex-1 pr-3 text-2xl font-bold tracking-tight" numberOfLines={1}>
+        <Text className="flex-1 pr-3 text-2xl font-extrabold tracking-tight" numberOfLines={1}>
           {city.name}
         </Text>
-        <Text className="text-brand-purple text-xl font-bold">{formatRange(city.costRange)}</Text>
+        <Text className="text-brand-purple text-xl font-extrabold">
+          {formatRange(city.costRange)}
+        </Text>
       </View>
       <Separator />
       <View className="mt-1">
@@ -59,7 +62,7 @@ function legRange(leg: TravelLeg): CostRange {
 function TravelCard({ legs }: { legs: TravelLeg[] }) {
   return (
     <Surface variant="secondary" className="border-border/60 rounded-3xl border p-5">
-      <Text className="mb-3 text-lg font-bold tracking-tight">Getting around</Text>
+      <Text className="mb-3 text-lg font-extrabold tracking-tight">getting around</Text>
       <Separator />
       <View className="mt-2 gap-1">
         {legs.map((leg) => {
@@ -143,14 +146,14 @@ export default function ResultsScreen() {
   if (!estimate) {
     return (
       <View className="bg-background p-safe flex-1 items-center justify-center gap-4 px-6">
-        <Text className="text-xl font-bold" align="center">
-          No estimate to show
+        <Text className="text-xl font-extrabold" align="center">
+          nothing to show yet
         </Text>
         <Text color="muted" align="center">
-          Head back and plan a trip to see your cost breakdown.
+          head back and plan a trip to see your cost breakdown.
         </Text>
         <Button variant="primary" onPress={() => router.back()}>
-          Back to planner
+          back to planner
         </Button>
       </View>
     );
@@ -165,7 +168,7 @@ export default function ResultsScreen() {
           hitSlop={8}
         >
           <ArrowLeft size={20} color={accent} />
-          <Text className="text-brand-purple text-base font-semibold">Back</Text>
+          <Text className="text-brand-purple text-base font-bold">back</Text>
         </Pressable>
       </View>
 
@@ -174,19 +177,40 @@ export default function ResultsScreen() {
         contentContainerClassName="px-5 pt-2 pb-6 gap-5"
         showsVerticalScrollIndicator={false}
       >
-        <Surface className="items-center gap-1.5 rounded-3xl p-7">
-          <Text className="text-brand-purple text-xs font-bold tracking-widest uppercase">
-            Estimated total
+        <LinearGradient
+          colors={['#6320EE', '#CD1A6F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: 30,
+            paddingVertical: 30,
+            paddingHorizontal: 24,
+          }}
+        >
+          <Text
+            className="text-sm font-extrabold lowercase"
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+          >
+            here&apos;s the damage
           </Text>
-          <Text className="text-5xl font-bold tracking-tight" align="center">
+          <Text
+            className="text-5xl font-extrabold tracking-tight"
+            align="center"
+            style={{ color: '#fff' }}
+          >
             {formatRange(estimate.totalCost)}
           </Text>
-          <View className="bg-brand-purple-soft mt-1 rounded-full px-3 py-1">
-            <Text className="text-brand-purple text-xs font-semibold">
+          <View
+            className="mt-1 rounded-full px-3 py-1"
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+          >
+            <Text className="text-xs font-bold" style={{ color: '#fff' }}>
               {estimate.cities.length} {estimate.cities.length === 1 ? 'city' : 'cities'}
             </Text>
           </View>
-        </Surface>
+        </LinearGradient>
 
         <Tabs value={view} onValueChange={(v) => setView(v === 'map' ? 'map' : 'breakdown')}>
           <Tabs.List>
@@ -237,7 +261,7 @@ export default function ResultsScreen() {
             })
           }
         >
-          Book this trip
+          let&apos;s book it
         </Button>
       </View>
     </View>
