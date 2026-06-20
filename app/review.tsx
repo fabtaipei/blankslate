@@ -117,6 +117,7 @@ export default function ReviewScreen() {
   const end = one(params.endDate);
   const departure = one(params.departureCity);
   const travellers = one(params.travellers, '1');
+  const cityDurationsStr = one(params.cityDurations);
 
   const total = useMemo(() => {
     const passed = Number(one(params.total, '0'));
@@ -144,6 +145,8 @@ export default function ReviewScreen() {
         departureCity: departure,
         travellers,
         cities: JSON.stringify(cityOrder),
+        cityDurations: cityDurationsStr,
+        items: JSON.stringify(items),
       },
     });
 

@@ -553,12 +553,16 @@ export default function BookScreen() {
     endDate,
     departureCity,
     travellers,
+    cityDurations: cityDurationsParam,
   } = useLocalSearchParams();
 
   const start = Array.isArray(startDate) ? startDate[0] : (startDate ?? '');
   const end = Array.isArray(endDate) ? endDate[0] : (endDate ?? '');
   const departure = Array.isArray(departureCity) ? departureCity[0] : (departureCity ?? '');
   const travellerCount = Array.isArray(travellers) ? travellers[0] : (travellers ?? '1');
+  const cityDurationsStr = Array.isArray(cityDurationsParam)
+    ? (cityDurationsParam[0] ?? '')
+    : (cityDurationsParam ?? '');
 
   const estimate = useMemo<TripEstimate | null>(() => {
     if (!estimateParam) return null;
@@ -969,6 +973,7 @@ export default function BookScreen() {
                   departureCity: departure,
                   travellers: travellerCount,
                   cities: JSON.stringify(cityNames),
+                  cityDurations: cityDurationsStr,
                 },
               })
             }

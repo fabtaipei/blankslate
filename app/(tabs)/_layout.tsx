@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react-native';
+import { Briefcase, MapPin } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useThemeColor } from 'heroui-native';
@@ -44,6 +44,14 @@ export default function TabLayout() {
             title: 'plan trip',
             headerShown: false,
             tabBarIcon: ({ color, size }) => <MapPin color={color} size={size ?? 24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="trip"
+          options={{
+            title: 'my trip',
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => <Briefcase color={color} size={size ?? 24} />,
           }}
         />
       </Tabs>

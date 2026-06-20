@@ -1,9 +1,12 @@
 import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from 'heroui-native';
-import { MapPin, PartyPopper, Share2, Users } from 'lucide-react-native';
-import { useMemo } from 'react';
+import { ArrowRight, MapPin, PartyPopper, Share2, Users } from 'lucide-react-native';
+import { useEffect, useMemo, useRef } from 'react';
 import { Platform, Pressable, ScrollView, Share, View } from 'react-native';
+
+import { useSavedTripStore } from '@/lib/savedTrip';
+import type { BookedItem } from '@/lib/tripEstimate';
 
 const BRAND = {
   pink: '#CD1A6F',
@@ -43,6 +46,33 @@ function parseCities(raw: unknown): string[] {
   }
 }
 
+function parseItems(raw: unknown): BookedItem[] {
+  if (!raw) return [];
+  try {
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    const parsed: unknown = JSON.parse(String(value));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (x): x is BookedItem =>
+        x !== null && typeof x === 'object' && 'title' in x && 'category' in x && 'price' in x,
+    );
+  } catch {
+    return [];
+  }
+}
+
+function parseNumbers(raw: unknown): number[] {
+  if (!raw) return [];
+  try {
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    const parsed: unknown = JSON.parse(String(value));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((n) => Number(n) || 1);
+  } catch {
+    return [];
+  }
+}
+
 function one(value: unknown, fallback = ''): string {
   if (Array.isArray(value)) return String(value[0] ?? fallback);
   return typeof value === 'string' ? value : fallback;
@@ -51,8 +81,11 @@ function one(value: unknown, fallback = ''): string {
 export default function ConfirmationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const saveTrip = useSavedTripStore((s) => s.saveTrip);
 
   const cities = useMemo(() => parseCities(params.cities), [params.cities]);
+  const items = useMemo(() => parseItems(params.items), [params.items]);
+  const cityDurations = useMemo(() => parseNumbers(params.cityDurations), [params.cityDurations]);
   const start = one(params.startDate);
   const end = one(params.endDate);
   const departure = one(params.departureCity);
@@ -61,6 +94,26 @@ export default function ConfirmationScreen() {
 
   const dateLabel = formatDates(start, end);
   const travellerLabel = `${travellers} ${travellers === 1 ? 'traveller' : 'travellers'}`;
+
+  // Persist the confirmed trip once so it stays accessible from the "my trip"
+  // tab going forward — not just on this one-time confirmation screen.
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (savedRef.current) return;
+    if (cities.length === 0 && items.length === 0) return;
+    savedRef.current = true;
+    void saveTrip({
+      departureCity: departure,
+      cities,
+      cityDurations,
+      startDate: start,
+      endDate: end,
+      travellers,
+      total,
+      items,
+      confirmedAt: new Date().toISOString(),
+    });
+  }, [cities, items, cityDurations, departure, start, end, travellers, total, saveTrip]);
 
   const onShare = async () => {
     const lines = [
@@ -247,11 +300,29 @@ export default function ConfirmationScreen() {
           </View>
         </View>
 
+        {/* View my trip — ongoing access to itinerary, map & calendar */}
+        <Pressable
+          onPress={() => {
+            router.dismissAll();
+            router.replace('/(tabs)/trip');
+          }}
+          className="flex-row items-center justify-center gap-2 rounded-full py-3.5"
+          style={{ backgroundColor: BRAND.pink }}
+        >
+          <Text
+            className="text-base"
+            style={{ fontFamily: BODY_FONT, fontWeight: '700', color: '#fff' }}
+          >
+            view my trip
+          </Text>
+          <ArrowRight size={18} color="#fff" strokeWidth={2.4} />
+        </Pressable>
+
         {/* Share */}
         <Pressable
           onPress={onShare}
           className="flex-row items-center justify-center gap-2 rounded-full py-3.5"
-          style={{ backgroundColor: BRAND.pink }}
+          style={{ backgroundColor: BRAND.purple }}
         >
           <Share2 size={18} color="#fff" strokeWidth={2.4} />
           <Text
@@ -263,7 +334,14 @@ export default function ConfirmationScreen() {
         </Pressable>
 
         {/* Start over */}
-        <Pressable onPress={() => router.dismissAll()} className="items-center py-1" hitSlop={8}>
+        <Pressable
+          onPress={() => {
+            router.dismissAll();
+            router.replace('/(tabs)');
+          }}
+          className="items-center py-1"
+          hitSlop={8}
+        >
           <Text
             className="text-sm"
             style={{ fontFamily: BODY_FONT, fontWeight: '600', color: BRAND.purple }}
