@@ -97,8 +97,6 @@ export default function TripInputScreen() {
     Keyboard.dismiss();
   };
 
-  const addCity = () => addCityByName(cityInput);
-
   const selectDestination = (city: City) => {
     addCityByName(city.name);
   };
@@ -225,8 +223,6 @@ export default function TripInputScreen() {
                 value={cityInput}
                 onChangeText={setCityInput}
                 onSelect={selectDestination}
-                onAdd={addCity}
-                showAddButton
                 exclude={cities}
                 placeholder="add a city or country"
               />

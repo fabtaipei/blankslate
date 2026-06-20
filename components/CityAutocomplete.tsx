@@ -1,6 +1,6 @@
 import { Input, Surface, Text, useThemeColor } from 'heroui-native';
-import { MapPin, Plus } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { MapPin } from 'lucide-react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   type NativeSyntheticEvent,
   Pressable,
@@ -17,9 +17,6 @@ type CityAutocompleteProps = {
   placeholder?: string;
   /** City names already chosen, hidden from suggestions. */
   exclude?: string[];
-  /** Optional add button on the right (used by the destinations field). */
-  showAddButton?: boolean;
-  onAdd?: () => void;
 };
 
 export function CityAutocomplete({
@@ -28,12 +25,15 @@ export function CityAutocomplete({
   onSelect,
   placeholder,
   exclude = [],
-  showAddButton = false,
-  onAdd,
 }: CityAutocompleteProps) {
-  const [accentForeground, accent, muted] = useThemeColor(['accent-foreground', 'accent', 'muted']);
+  const [accent, muted] = useThemeColor(['accent', 'muted']);
   const [focused, setFocused] = useState(false);
   const [highlight, setHighlight] = useState(-1);
+
+  // Tracks whether a suggestion press is in-flight so the input's onBlur
+  // (which fires before onPress on web) doesn't tear down the dropdown
+  // before the selection is handled.
+  const selectingRef = useRef(false);
 
   const matches = useMemo(() => searchCities(value, exclude, 8), [value, exclude]);
 
@@ -46,16 +46,14 @@ export function CityAutocomplete({
 
   const handleSelect = (city: City) => {
     setHighlight(-1);
+    setFocused(false);
     onSelect(city);
   };
 
   const handleKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
     const key = event.nativeEvent.key;
 
-    if (!open || matches.length === 0) {
-      if (key === 'Enter' && onAdd) onAdd();
-      return;
-    }
+    if (!open || matches.length === 0) return;
 
     if (key === 'ArrowDown') {
       event.preventDefault?.();
@@ -76,31 +74,22 @@ export function CityAutocomplete({
 
   return (
     <View className="relative">
-      <View className="flex-row items-center gap-2">
-        <Input
-          className="flex-1"
-          placeholder={placeholder}
-          value={value}
-          onChangeText={onChangeText}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onKeyPress={handleKeyPress}
-          autoCapitalize="words"
-          autoCorrect={false}
-          returnKeyType="done"
-          onSubmitEditing={onAdd}
-        />
-        {showAddButton ? (
-          <Pressable
-            onPress={onAdd}
-            disabled={value.trim().length === 0}
-            className="bg-accent h-12 w-12 items-center justify-center rounded-2xl"
-            style={{ opacity: value.trim().length === 0 ? 0.4 : 1 }}
-          >
-            <Plus size={20} color={accentForeground} />
-          </Pressable>
-        ) : null}
-      </View>
+      <Input
+        placeholder={placeholder}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          // If a suggestion is being tapped, keep the dropdown alive long
+          // enough for the press to register, then close it.
+          if (selectingRef.current) return;
+          setFocused(false);
+        }}
+        onKeyPress={handleKeyPress}
+        autoCapitalize="words"
+        autoCorrect={false}
+        returnKeyType="done"
+      />
 
       {open ? (
         <Surface className="border-border mt-2 overflow-hidden rounded-2xl border">
@@ -108,7 +97,15 @@ export function CityAutocomplete({
             matches.map((city, index) => (
               <Pressable
                 key={`${city.name}-${city.country}`}
-                onPress={() => handleSelect(city)}
+                // Fire on press-in (before blur) and guard against the blur
+                // race so a tap always fills + adds the city reliably.
+                onPressIn={() => {
+                  selectingRef.current = true;
+                }}
+                onPress={() => {
+                  selectingRef.current = false;
+                  handleSelect(city);
+                }}
                 className="active:bg-brand-purple-soft flex-row items-center gap-3 px-4 py-3"
                 style={[
                   index < matches.length - 1
