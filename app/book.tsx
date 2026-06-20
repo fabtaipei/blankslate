@@ -318,6 +318,18 @@ function perVisitRange(total: CostRange, days: number, occasionsPerDay: number):
   return { min, max };
 }
 
+/** Group real backend suggestions by lowercased city name (preserves order). */
+function groupByCity<T extends { city: string }>(items: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    const key = item.city.trim().toLowerCase();
+    const arr = map.get(key);
+    if (arr) arr.push(item);
+    else map.set(key, [item]);
+  }
+  return map;
+}
+
 // Concrete, fake-but-plausible bookable options derived from each city's price ranges.
 // `cityDayCount` maps a city name to how many days the traveller spends there, so
 // per-visit food/activity suggestions are priced relative to the per-day budget.
@@ -329,9 +341,9 @@ function buildOptions(
 ): BookableOption[] {
   const out: BookableOption[] = [];
 
-  // Real backend picks, keyed by lowercased city name (one top result per city).
-  const realRestaurant = new Map(restaurants.map((r) => [r.city.trim().toLowerCase(), r]));
-  const realHotel = new Map(hotels.map((h) => [h.city.trim().toLowerCase(), h]));
+  // Real backend picks grouped by lowercased city name (multiple per city).
+  const realRestaurants = groupByCity(restaurants);
+  const realHotels = groupByCity(hotels);
 
   const HOTEL_NAMES = [
     'City Center Hostel',
@@ -352,12 +364,12 @@ function buildOptions(
     const key = city.name.trim().toLowerCase();
     const days = cityDayCount[city.name] ?? 1;
 
-    // Accommodation: a spread of stays from budget to upscale. Slot 0 is swapped
-    // for the real cheapest hotel (LiteAPI) when the backend returned one.
+    // Accommodation: a spread of stays. The cheapest real hotels (LiteAPI) fill
+    // the first slots; any remaining slots keep the synthetic placeholders.
     const stayPrices = spreadPrices(city.breakdown.accommodation, HOTEL_NAMES.length);
-    const hotel = realHotel.get(key);
+    const cityHotels = realHotels.get(key) ?? [];
     HOTEL_NAMES.forEach((name, i) => {
-      const realThisSlot = i === 0 ? hotel : undefined;
+      const realThisSlot = cityHotels[i];
       if (realThisSlot) {
         const detail =
           [
@@ -393,11 +405,11 @@ function buildOptions(
     // multi-day food budget), cheaper ones first. ~2.5 meals out per day.
     const foodSugg = foodSuggestions(key, city.name);
     const foodPrices = spreadPrices(perVisitRange(city.breakdown.food, days, 2.5), foodSugg.length);
-    const restaurant = realRestaurant.get(key);
+    const cityRestaurants = realRestaurants.get(key) ?? [];
     foodSugg.forEach((s, i) => {
-      // Slot 0 swaps in the real top restaurant (Google) name + detail; the price
-      // keeps the per-visit budget figure (the backend's USD estimate isn't £).
-      const realThisSlot = i === 0 ? restaurant : undefined;
+      // Real restaurants (Google) fill the first slots — name + detail only; the
+      // price keeps the per-visit budget figure (the backend's USD estimate isn't £).
+      const realThisSlot = cityRestaurants[i];
       const detail = realThisSlot
         ? [
             realThisSlot.rating != null ? `${realThisSlot.rating}★` : null,
