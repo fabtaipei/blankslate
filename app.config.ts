@@ -10,13 +10,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'BlankSlate',
-    slug: 'blankslate',
+    name: 'locus',
+    slug: 'locus',
     newArchEnabled: true,
     version: process.env.BILT_APP_VERSION ?? '1.0.0',
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
-    scheme: 'blankslate',
+    scheme: 'locus',
     runtimeVersion: {
       policy: 'appVersion',
     },
