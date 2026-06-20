@@ -294,8 +294,34 @@ function spreadPrices(range: CostRange, count: number): number[] {
   return out;
 }
 
+/**
+ * Derive a single-visit price range from a multi-day category budget.
+ *
+ * The breakdown range covers the WHOLE stay (e.g. a 3-day food budget), so an
+ * individual restaurant or activity must be a fraction of it — one meal among
+ * several over the trip, not the entire budget. We divide the per-day budget by
+ * the typical number of paid occasions per day so a single suggestion sits in a
+ * realistic band: ~2.5 eating-out meals/day for food, ~1.5 activities/day.
+ *
+ * The trip style is already baked into `total` (the estimate applies its style
+ * multiplier upstream), so this stays proportional to the actual estimate: the
+ * food range ÷ days lands at roughly 2–3× a single suggested meal price.
+ */
+function perVisitRange(total: CostRange, days: number, occasionsPerDay: number): CostRange {
+  const safeDays = Math.max(1, Math.round(days));
+  const divisor = safeDays * occasionsPerDay;
+  const min = Math.max(5, total.min / divisor);
+  const max = Math.max(min + 5, total.max / divisor);
+  return { min, max };
+}
+
 // Concrete, fake-but-plausible bookable options derived from each city's price ranges.
-function buildOptions(cities: CityEstimate[]): BookableOption[] {
+// `cityDayCount` maps a city name to how many days the traveller spends there, so
+// per-visit food/activity suggestions are priced relative to the per-day budget.
+function buildOptions(
+  cities: CityEstimate[],
+  cityDayCount: Record<string, number>,
+): BookableOption[] {
   const out: BookableOption[] = [];
 
   const HOTEL_NAMES = [
@@ -315,6 +341,7 @@ function buildOptions(cities: CityEstimate[]): BookableOption[] {
 
   cities.forEach((city, index) => {
     const key = city.name.trim().toLowerCase();
+    const days = cityDayCount[city.name] ?? 1;
 
     // Accommodation: a spread of stays from budget to upscale.
     const stayPrices = spreadPrices(city.breakdown.accommodation, HOTEL_NAMES.length);
@@ -329,9 +356,10 @@ function buildOptions(cities: CityEstimate[]): BookableOption[] {
       });
     });
 
-    // Food: suggested restaurants, cheaper ones first.
+    // Food: suggested restaurants priced as a single meal (a fraction of the
+    // multi-day food budget), cheaper ones first. ~2.5 meals out per day.
     const foodSugg = foodSuggestions(key, city.name);
-    const foodPrices = spreadPrices(city.breakdown.food, foodSugg.length);
+    const foodPrices = spreadPrices(perVisitRange(city.breakdown.food, days, 2.5), foodSugg.length);
     foodSugg.forEach((s, i) => {
       out.push({
         id: `${city.name}-food-${i}`,
@@ -343,9 +371,13 @@ function buildOptions(cities: CityEstimate[]): BookableOption[] {
       });
     });
 
-    // Activities: suggested experiences, cheaper ones first.
+    // Activities: suggested experiences priced per single outing (a fraction of
+    // the multi-day activities budget), cheaper ones first. ~1.5 outings per day.
     const actSugg = activitySuggestions(key, city.name);
-    const actPrices = spreadPrices(city.breakdown.activities, actSugg.length);
+    const actPrices = spreadPrices(
+      perVisitRange(city.breakdown.activities, days, 1.5),
+      actSugg.length,
+    );
     actSugg.forEach((s, i) => {
       out.push({
         id: `${city.name}-activities-${i}`,
@@ -686,8 +718,24 @@ export default function BookScreen() {
 
   const options = useMemo<BookableOption[]>(() => {
     if (!estimate) return [];
-    return buildOptions(estimate.cities);
-  }, [estimate]);
+    // Days per city, parsed from the same source as cityDays below, so food and
+    // activity suggestions are priced relative to each city's per-day budget.
+    const durations = (() => {
+      try {
+        const parsed: unknown = JSON.parse(cityDurationsStr || '[]');
+        return Array.isArray(parsed)
+          ? parsed.map((n) => Math.max(1, Math.round(Number(n) || 1)))
+          : [];
+      } catch {
+        return [];
+      }
+    })();
+    const dayCount: Record<string, number> = {};
+    estimate.cities.forEach((c, i) => {
+      dayCount[c.name] = durations[i] ?? 1;
+    });
+    return buildOptions(estimate.cities, dayCount);
+  }, [estimate, cityDurationsStr]);
 
   const legs = useMemo<TravelLeg[]>(() => estimate?.legs ?? [], [estimate]);
 
