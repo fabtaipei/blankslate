@@ -340,16 +340,38 @@ function checkRouteEfficiency(stops: string[]): string | null {
   return null;
 }
 
+const ESTIMATE_API_URL = 'https://ltravel-api.vercel.app/api/estimate';
+
 /**
- * Simulated trip estimate API.
+ * Trip estimate API.
  *
- * This is the single seam to swap for a real backend call later: replace the body
- * with a fetch/SDK request that returns the same `TripEstimate` shape. Nothing in the
- * screen depends on how this resolves, only on its return type.
+ * Sends `tripData` to the remote estimate endpoint and returns the parsed
+ * `TripEstimate` response. If the request throws or returns a non-200 status,
+ * we fall back to the local deterministic calculation.
  */
 export async function getTripEstimate(tripData: TripData): Promise<TripEstimate> {
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  try {
+    const response = await fetch(ESTIMATE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tripData),
+    });
+    if (!response.ok) {
+      return localTripEstimate(tripData);
+    }
+    return (await response.json()) as TripEstimate;
+  } catch {
+    return localTripEstimate(tripData);
+  }
+}
 
+/**
+ * Local, deterministic fallback estimate.
+ *
+ * Used when the remote estimate endpoint is unreachable or errors. Returns the
+ * same `TripEstimate` shape from simulated, seed-based pricing.
+ */
+async function localTripEstimate(tripData: TripData): Promise<TripEstimate> {
   const nights = diffNights(tripData.startDate, tripData.endDate);
   const styleFactor = STYLE_MULTIPLIER[tripData.tripStyle];
   const cityCount = Math.max(1, tripData.cities.length);
