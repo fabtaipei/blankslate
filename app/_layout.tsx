@@ -122,40 +122,6 @@ export default function RootLayout() {
     }
   }, []);
 
-  // TEMP: one-time POST connectivity test against the estimate endpoint.
-  // Remove after confirming the endpoint responds.
-  useEffect(() => {
-    const samplePayload = {
-      departureCity: 'London',
-      cities: ['Paris', 'Rome'],
-      cityDurations: [3, 4],
-      tripStyle: 'mid-range',
-      startDate: '2026-07-01',
-      endDate: '2026-07-08',
-      travellers: 2,
-    };
-    void (async () => {
-      const url = 'https://ltravel-api.vercel.app/api/estimate';
-      try {
-        const started = Date.now();
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(samplePayload),
-        });
-        const ms = Date.now() - started;
-        const text = await res.text();
-        const msg = `[estimate-api-test] status=${res.status} ok=${res.ok} time=${ms}ms\nbody=${text.slice(0, 1000)}`;
-        console.log(msg);
-        if (Platform.OS === 'web') reportErrorToParent(msg);
-      } catch (e) {
-        const msg = `[estimate-api-test] request failed: ${e instanceof Error ? e.message : String(e)}`;
-        console.log(msg);
-        if (Platform.OS === 'web') reportErrorToParent(msg);
-      }
-    })();
-  }, []);
-
   useEffect(() => {
     if (loaded || error) {
       void SplashScreen.hideAsync();
