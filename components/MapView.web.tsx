@@ -1,9 +1,9 @@
-import { Map, Marker, Overlay } from 'pigeon-maps';
+import { Map, Marker, Overlay, GeoJson } from 'pigeon-maps';
 import { useCallback } from 'react';
 import { View, Text } from 'react-native';
 
 import { DEFAULT_REGION } from './MapView.types';
-import type { MapViewProps, MapRegion, MapType } from './MapView.types';
+import type { MapViewProps, MapRegion, MapType, MapPolyline } from './MapView.types';
 
 export type {
   MapViewProps,
@@ -53,6 +53,18 @@ const COLOR_HUE: Record<string, number> = {
   purple: 280,
 };
 
+function polylineToFeature(polyline: MapPolyline) {
+  return {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: {
+      type: 'LineString' as const,
+      // GeoJSON uses [longitude, latitude] order.
+      coordinates: polyline.coordinates.map((c) => [c.longitude, c.latitude]),
+    },
+  };
+}
+
 export default function MapView({
   initialRegion = DEFAULT_REGION,
   region,
@@ -60,7 +72,7 @@ export default function MapView({
   onRegionChangeComplete,
   mapType = 'standard',
   markers = [],
-  polylines: _polylines = [],
+  polylines = [],
   polygons: _polygons = [],
   circles: _circles = [],
   onPress,
@@ -101,9 +113,8 @@ export default function MapView({
 
   const provider = tileProvider(mapType);
 
-  // Note: pigeon-maps doesn't natively support polylines/polygons/circles.
-  // These overlays render on native and Expo Go (Leaflet). For full web
-  // overlay support, consider switching to react-leaflet.
+  // pigeon-maps renders polylines via the GeoJson LineString layer. Polygons and
+  // circles aren't drawn on web — they only appear on native / Expo Go (Leaflet).
 
   return (
     <View style={style} className={className}>
@@ -128,6 +139,22 @@ export default function MapView({
             : 400
         }
       >
+        {polylines.map((polyline, index) => (
+          <GeoJson
+            key={polyline.id ?? `polyline-${index}`}
+            data={{ type: 'FeatureCollection', features: [polylineToFeature(polyline)] }}
+            svgAttributes={{
+              fill: 'none',
+              stroke: polyline.strokeColor ?? '#007AFF',
+              strokeWidth: polyline.strokeWidth ?? 3,
+              strokeLinecap: 'round',
+              strokeLinejoin: 'round',
+              strokeDasharray: polyline.lineDashPattern
+                ? polyline.lineDashPattern.join(' ')
+                : undefined,
+            }}
+          />
+        ))}
         {markers.map((marker, index) => (
           <Marker
             key={marker.id ?? index}

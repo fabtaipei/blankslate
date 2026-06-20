@@ -153,6 +153,7 @@ export default function TripInputScreen() {
           endDate: tripData.endDate,
           departureCity: tripData.departureCity,
           travellers: String(tripData.travellers),
+          cityDurations: JSON.stringify(tripData.cityDurations),
         },
       });
     } finally {
