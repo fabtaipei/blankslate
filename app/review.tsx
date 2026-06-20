@@ -20,7 +20,7 @@ const BODY_FONT = Platform.select({
 });
 
 function formatMoney(value: number): string {
-  return `$${Math.round(value).toLocaleString('en-US')}`;
+  return `£${Math.round(value).toLocaleString('en-GB')}`;
 }
 
 function formatDates(start: string, end: string): string | null {

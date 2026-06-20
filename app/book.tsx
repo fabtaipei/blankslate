@@ -37,7 +37,7 @@ const BODY_FONT = Platform.select({
 });
 
 function formatMoney(value: number): string {
-  return `$${Math.round(value).toLocaleString('en-US')}`;
+  return `£${Math.round(value).toLocaleString('en-GB')}`;
 }
 
 function formatRange(range: CostRange): string {
@@ -262,7 +262,7 @@ function activitySuggestions(key: string, city: string): Suggestion[] {
   return genericActivities(city);
 }
 
-// Spread N prices evenly across a range (low to high), rounded to the nearest $5.
+// Spread N prices evenly across a range (low to high), rounded to the nearest £5.
 function spreadPrices(range: CostRange, count: number): number[] {
   if (count <= 1) return [Math.round(range.min / 5) * 5];
   const out: number[] = [];

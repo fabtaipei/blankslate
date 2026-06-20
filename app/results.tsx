@@ -7,7 +7,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import type { CityEstimate, CostRange, TravelLeg, TripEstimate } from '@/lib/tripEstimate';
 
 function formatMoney(value: number): string {
-  return `$${Math.round(value).toLocaleString('en-US')}`;
+  return `£${Math.round(value).toLocaleString('en-GB')}`;
 }
 
 function formatRange(range: CostRange): string {

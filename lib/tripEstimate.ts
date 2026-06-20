@@ -154,9 +154,9 @@ function range(base: number): CostRange {
   return { min, max };
 }
 
-/** Compact USD formatter used in recommendation reasons. */
+/** Compact GBP formatter used in recommendation reasons. */
 function formatMoney(value: number): string {
-  return `$${Math.round(value).toLocaleString('en-US')}`;
+  return `£${Math.round(value).toLocaleString('en-GB')}`;
 }
 
 // Stable pseudo-random seed from a string so prices stay consistent per leg.
@@ -245,8 +245,8 @@ function applyRecommendation(options: TravelOption[]): void {
 function buildLeg(from: string, to: string, styleFactor: number, travellers: number): TravelLeg {
   const seed = seedFromString(`${from}|${to}`);
   const dist = legDistance(from, to);
-  // Base flight price varies by seed and scales with style + travellers.
-  const baseFlight = (180 + (seed % 320)) * styleFactor;
+  // Base flight price varies by seed and scales with style + travellers (GBP-scale).
+  const baseFlight = (145 + (seed % 255)) * styleFactor;
   const flightPrice = Math.round((baseFlight * travellers) / 10) * 10;
 
   // Flight: in-air time scales with distance; add fixed airport overhead (~1.5h).
@@ -363,12 +363,12 @@ export async function getTripEstimate(tripData: TripData): Promise<TripEstimate>
     const variance = 0.85 + ((name.length + index) % 5) * 0.08;
     const f = styleFactor * variance;
 
-    const flights = range(420 * travellers * f);
+    const flights = range(335 * travellers * f);
     // Accommodation scales with nights (days) in this city: nightly rate × nights.
-    const accommodation = range(95 * days * Math.ceil(travellers / 2) * f);
+    const accommodation = range(75 * days * Math.ceil(travellers / 2) * f);
     // Food and activities also scale with days spent in the city.
-    const food = range(45 * days * travellers * f);
-    const activities = range(60 * days * travellers * f);
+    const food = range(36 * days * travellers * f);
+    const activities = range(48 * days * travellers * f);
 
     // Inter-city travel is costed via `legs` below, so the per-city total
     // excludes flights and covers stay + food + activities only.
