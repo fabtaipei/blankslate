@@ -6,6 +6,8 @@
  * synthetic fallback options instead of erroring.
  */
 
+import type { TripStyle } from './tripEstimate';
+
 const API_BASE = 'https://ltravel-api.vercel.app';
 
 export interface RestaurantSuggestion {
@@ -18,13 +20,16 @@ export interface RestaurantSuggestion {
 }
 
 /** One top restaurant per city. Returns [] on any error. */
-export async function getRestaurants(cities: string[]): Promise<RestaurantSuggestion[]> {
+export async function getRestaurants(
+  cities: string[],
+  tripStyle: TripStyle,
+): Promise<RestaurantSuggestion[]> {
   if (cities.length === 0) return [];
   try {
     const res = await fetch(`${API_BASE}/api/restaurants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cities }),
+      body: JSON.stringify({ cities, tripStyle }),
     });
     if (!res.ok) return [];
     const data = (await res.json()) as { restaurants?: RestaurantSuggestion[] };

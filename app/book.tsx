@@ -26,6 +26,7 @@ import {
   type TravelOption,
   type TripData,
   type TripEstimate,
+  type TripStyle,
 } from '@/lib/tripEstimate';
 
 // bilt.me brand palette
@@ -753,6 +754,7 @@ export default function BookScreen() {
     departureCity,
     travellers,
     cityDurations: cityDurationsParam,
+    tripStyle: tripStyleParam,
   } = useLocalSearchParams();
 
   const start = Array.isArray(startDate) ? startDate[0] : (startDate ?? '');
@@ -762,6 +764,9 @@ export default function BookScreen() {
   const cityDurationsStr = Array.isArray(cityDurationsParam)
     ? (cityDurationsParam[0] ?? '')
     : (cityDurationsParam ?? '');
+  const tripStyleRaw = Array.isArray(tripStyleParam) ? tripStyleParam[0] : (tripStyleParam ?? '');
+  const tripStyle: TripStyle =
+    tripStyleRaw === 'budget' || tripStyleRaw === 'luxury' ? tripStyleRaw : 'mid-range';
 
   const estimate = useMemo<TripEstimate | null>(() => {
     if (!estimateParam) return null;
@@ -785,7 +790,7 @@ export default function BookScreen() {
     if (cityNamesForFetch.length === 0) return undefined;
     let cancelled = false;
 
-    void getRestaurants(cityNamesForFetch).then((list) => {
+    void getRestaurants(cityNamesForFetch, tripStyle).then((list) => {
       if (!cancelled) setRestaurants(list);
     });
 
@@ -803,9 +808,7 @@ export default function BookScreen() {
       departureCity: departure,
       cities: cityNamesForFetch,
       cityDurations: durations,
-      // tripStyle isn't passed to this screen; the hotel search ignores it (it
-      // returns the cheapest stay), so a default satisfies the API contract.
-      tripStyle: 'mid-range',
+      tripStyle,
       startDate: start,
       endDate: end,
       travellers: Math.max(1, Number(travellerCount) || 1),
@@ -817,7 +820,7 @@ export default function BookScreen() {
     return () => {
       cancelled = true;
     };
-  }, [estimate, departure, start, end, travellerCount, cityDurationsStr]);
+  }, [estimate, departure, start, end, travellerCount, cityDurationsStr, tripStyle]);
 
   const options = useMemo<BookableOption[]>(() => {
     if (!estimate) return [];

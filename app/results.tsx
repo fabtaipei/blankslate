@@ -122,6 +122,7 @@ export default function ResultsScreen() {
     departureCity,
     travellers,
     cityDurations: cityDurationsParam,
+    tripStyle,
   } = useLocalSearchParams();
   const [accent] = useThemeColor(['accent']);
   const [view, setView] = useState<'breakdown' | 'map'>('breakdown');
@@ -281,6 +282,7 @@ export default function ResultsScreen() {
                   : (departureCity ?? ''),
                 travellers: Array.isArray(travellers) ? travellers[0] : (travellers ?? '1'),
                 cityDurations: cityDurationsStr,
+                tripStyle: Array.isArray(tripStyle) ? tripStyle[0] : (tripStyle ?? 'mid-range'),
               },
             })
           }
