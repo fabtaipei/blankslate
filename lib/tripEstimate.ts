@@ -58,6 +58,14 @@ export interface TripEstimate {
   legs: TravelLeg[];
   /** Inline route-efficiency callout, or null when the chosen order looks fine. */
   routeWarning: string | null;
+  /**
+   * A more efficient ordering of the SAME destination cities (reordered, never
+   * added/removed), or null/absent when the chosen order is already fine. Shown
+   * as an accept/dismiss suggestion — never auto-applied.
+   */
+  suggestedOrder?: string[] | null;
+  /** One-line, plain reason for the suggested order, or null/absent. */
+  suggestedOrderReason?: string | null;
 }
 
 /** A single thing the user tapped "book this" on, threaded into the review screen. */
@@ -515,5 +523,7 @@ async function localTripEstimate(tripData: TripData): Promise<TripEstimate> {
     { min: legsTotal, max: legsTotal },
   );
 
-  return { totalCost, cities, legs, routeWarning };
+  // The local fallback doesn't suggest a reorder (it has no real geography);
+  // the route suggestion comes from the backend when reachable.
+  return { totalCost, cities, legs, routeWarning, suggestedOrder: null, suggestedOrderReason: null };
 }

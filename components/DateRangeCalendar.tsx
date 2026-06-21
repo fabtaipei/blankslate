@@ -9,6 +9,7 @@ import {
   isSameDay,
   isSameMonth,
   startOfMonth,
+  startOfToday,
   startOfWeek,
   subMonths,
 } from 'date-fns';
@@ -44,6 +45,12 @@ export function DateRangeCalendar({ startDate, endDate, onChange }: DateRangeCal
   const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
   const end = endDate ? new Date(`${endDate}T00:00:00`) : null;
 
+  // Earliest selectable day: today by default (today stays selectable). While
+  // picking the end date (start chosen, no end yet), the floor is the start date
+  // so no end before the start can be tapped.
+  const today = startOfToday();
+  const minSelectable = start && !end ? (isBefore(start, today) ? today : start) : today;
+
   const [visibleMonth, setVisibleMonth] = useState<Date>(() => start ?? new Date());
 
   const days = useMemo(() => {
@@ -53,6 +60,9 @@ export function DateRangeCalendar({ startDate, endDate, onChange }: DateRangeCal
   }, [visibleMonth]);
 
   const handleSelect = (day: Date) => {
+    // Safety net — disabled days aren't tappable, but never act on a past /
+    // pre-start day even if one slips through.
+    if (isBefore(day, minSelectable)) return;
     const iso = toISO(day);
     // Picking logic: no start -> set start. Start but no end -> set end (or swap).
     // Both set -> restart range from this day.
@@ -118,20 +128,29 @@ export function DateRangeCalendar({ startDate, endDate, onChange }: DateRangeCal
           const inMonth = isSameMonth(day, visibleMonth);
           const inRange = isInRange(day);
           const endpoint = isEndpoint(day);
+          // Before today, or before the chosen start while picking the end.
+          const disabled = isBefore(day, minSelectable);
           return (
             <View key={day.toISOString()} className="w-[14.28%] items-center py-0.5">
               <Pressable
                 onPress={() => handleSelect(day)}
+                disabled={disabled}
+                accessibilityState={{ disabled }}
                 className={cn(
                   'h-9 w-9 items-center justify-center rounded-full',
                   inRange && !endpoint && 'bg-accent/15 rounded-none',
                   endpoint && 'rounded-full',
                 )}
-                style={endpoint ? { backgroundColor: accent } : undefined}
+                style={endpoint && !disabled ? { backgroundColor: accent } : undefined}
               >
                 <Text
-                  className={cn('text-sm', !inMonth && 'opacity-30')}
-                  style={endpoint ? { color: accentForeground } : undefined}
+                  className={cn(
+                    'text-sm',
+                    !inMonth && 'opacity-30',
+                    // Greyed out and visibly non-tappable.
+                    disabled && 'text-foreground/25',
+                  )}
+                  style={endpoint && !disabled ? { color: accentForeground } : undefined}
                 >
                   {format(day, 'd')}
                 </Text>

@@ -17,6 +17,7 @@ import { Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { getHotels, type HotelSuggestion } from '@/lib/hotels';
 import { getRestaurants, type RestaurantSuggestion } from '@/lib/restaurants';
+import { usePendingReorder } from '@/lib/routeSuggestion';
 import {
   cityDateRanges,
   type BookedItem,
@@ -870,6 +871,16 @@ export default function BookScreen() {
   // Which sections have "show more" expanded. Keyed by a stable section id.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  // Route-order suggestion: locally dismissable; "use this order" hands the
+  // suggested order back to the planner (which reorders + lets the user re-estimate).
+  const [suggestionHidden, setSuggestionHidden] = useState(false);
+  const setPendingOrder = usePendingReorder((s) => s.setOrder);
+  const applySuggestedOrder = () => {
+    if (!estimate?.suggestedOrder) return;
+    setPendingOrder(estimate.suggestedOrder);
+    router.dismissAll();
+  };
+
   // Per-city date windows (ISO days) from the trip start date + day split.
   const cityDays = useMemo<Record<string, string[]>>(() => {
     const durations = (() => {
@@ -1111,6 +1122,66 @@ export default function BookScreen() {
             >
               {estimate.routeWarning}
             </Text>
+          </Surface>
+        ) : null}
+
+        {/* Suggested route order — an accept/dismiss option, never auto-applied */}
+        {estimate.suggestedOrder && estimate.suggestedOrder.length > 0 && !suggestionHidden ? (
+          <Surface className="gap-3 p-4" style={{ backgroundColor: BRAND.purpleSoft, borderRadius: 20 }}>
+            <View className="gap-1">
+              <Text
+                className="text-xs"
+                style={{
+                  fontFamily: BODY_FONT,
+                  fontWeight: '700',
+                  color: BRAND.purple,
+                  letterSpacing: 0.5,
+                }}
+              >
+                SUGGESTED ORDER
+              </Text>
+              <Text
+                className="text-base"
+                style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#1a1a1a' }}
+              >
+                {estimate.suggestedOrder.join('  →  ')}
+              </Text>
+              {estimate.suggestedOrderReason ? (
+                <Text
+                  className="text-sm"
+                  style={{ fontFamily: BODY_FONT, color: '#6b6b6b', lineHeight: 18 }}
+                >
+                  {estimate.suggestedOrderReason}
+                </Text>
+              ) : null}
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={applySuggestedOrder}
+                className="flex-1 flex-row items-center justify-center gap-1.5 rounded-full py-2.5"
+                style={{ backgroundColor: BRAND.purple }}
+              >
+                <Text
+                  className="text-sm"
+                  style={{ fontFamily: BODY_FONT, fontWeight: '700', color: '#fff' }}
+                >
+                  use this order
+                </Text>
+                <ArrowRight size={16} color="#fff" strokeWidth={2.5} />
+              </Pressable>
+              <Pressable
+                onPress={() => setSuggestionHidden(true)}
+                className="rounded-full px-4 py-2.5"
+                style={{ borderWidth: 1, borderColor: '#e5e5e5' }}
+              >
+                <Text
+                  className="text-sm"
+                  style={{ fontFamily: BODY_FONT, fontWeight: '600', color: '#6b6b6b' }}
+                >
+                  dismiss
+                </Text>
+              </Pressable>
+            </View>
           </Surface>
         ) : null}
 

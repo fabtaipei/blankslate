@@ -16,6 +16,7 @@ import {
 import { CityAutocomplete } from '@/components/CityAutocomplete';
 import { DateRangeCalendar } from '@/components/DateRangeCalendar';
 import type { City } from '@/lib/cities';
+import { usePendingReorder } from '@/lib/routeSuggestion';
 import {
   cityDateRanges,
   formatCityDateRange,
@@ -84,6 +85,23 @@ export default function TripInputScreen() {
     }
     setCityDurations(suggestCityDurations(cities, tripDays));
   }, [cities, tripDays]);
+
+  // Apply an accepted route-order suggestion handed off from the book screen:
+  // reorder the existing cities to match (same set only), then clear it. The
+  // duration effect above re-splits days for the new order.
+  const pendingOrder = usePendingReorder((s) => s.order);
+  const clearPendingOrder = usePendingReorder((s) => s.setOrder);
+  useEffect(() => {
+    if (!pendingOrder) return;
+    setCities((prev) => {
+      const sameSet =
+        pendingOrder.length === prev.length &&
+        pendingOrder.every((c) => prev.includes(c)) &&
+        prev.every((c) => pendingOrder.includes(c));
+      return sameSet ? [...pendingOrder] : prev;
+    });
+    clearPendingOrder(null);
+  }, [pendingOrder, clearPendingOrder]);
 
   const daysAllocated = cityDurations.reduce((a, b) => a + b, 0);
   const daysMatch = tripDays > 0 && daysAllocated === tripDays;
